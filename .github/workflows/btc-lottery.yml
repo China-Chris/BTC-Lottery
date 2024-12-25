@@ -7,7 +7,7 @@ on:
 
 env:
   POOL_SIZE: 20      # 奖池数字范围 (1 到 POOL_SIZE)
-  WINNER_COUNT: 3    # 抽奖数量
+  WINNER_COUNT: 1    # 抽奖数量
 
 jobs:
   lottery:
@@ -34,16 +34,14 @@ jobs:
           
           echo "Random Seed: $SEED"
           
-          cat << EOF > lottery.py
-import random
-
-pool_size = ${POOL_SIZE}
-winner_count = ${WINNER_COUNT}
-seed = ${SEED}
-
-random.seed(seed)
-winners = random.sample(range(1, pool_size + 1), winner_count)
-print("Winners:", winners)
-EOF
+          echo "import random" > lottery.py
+          echo "" >> lottery.py
+          echo "pool_size = ${POOL_SIZE}" >> lottery.py
+          echo "winner_count = ${WINNER_COUNT}" >> lottery.py
+          echo "seed = ${SEED}" >> lottery.py
+          echo "" >> lottery.py
+          echo "random.seed(seed)" >> lottery.py
+          echo "winners = random.sample(range(1, pool_size + 1), winner_count)" >> lottery.py
+          echo "print('Winners:', winners)" >> lottery.py
           
           python3 lottery.py
