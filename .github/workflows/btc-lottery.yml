@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  POOL_SIZE: 15      # 修改为15
-  WINNER_COUNT: 2    # 修改为2
+  POOL_SIZE: 15      # Pool size range (1 to POOL_SIZE)
+  WINNER_COUNT: 2    # Number of winners
 
 jobs:
   lottery:
@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Fetch BTC Latest Block Hash
         id: fetch-hash
@@ -23,8 +23,8 @@ jobs:
           response=$(curl -s https://blockchain.info/latestblock)
           block_hash=$(echo $response | jq -r '.hash')
           echo "block_hash=$block_hash" >> $GITHUB_OUTPUT
-          echo "## 🔗 区块信息" >> $GITHUB_STEP_SUMMARY
-          echo "- 区块哈希：\`$block_hash\`" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔗 Block Information" >> $GITHUB_STEP_SUMMARY
+          echo "- Block Hash: \`$block_hash\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Perform Lottery
         id: lottery
@@ -55,23 +55,23 @@ jobs:
           echo "with open('lottery_result.json', 'w') as f:" >> lottery.py
           echo "    json.dump(result, f)" >> lottery.py
           echo "" >> lottery.py
-          echo "print(f\"🎉 抽奖结果：{winners}\")" >> lottery.py
+          echo "print(f\"🎉 Lottery Results: {winners}\")" >> lottery.py
           echo "print(f\"winners_str={','.join(map(str, winners))}\")" >> lottery.py
           
           python3 lottery.py > output.txt
           
-          # 从输出中提取winners_str并保存到GITHUB_OUTPUT
+          # Extract winners_str from output and save to GITHUB_OUTPUT
           winners_str=$(grep "winners_str=" output.txt | cut -d'=' -f2)
           echo "winners=$winners_str" >> $GITHUB_OUTPUT
           
-          echo "## 🎲 抽奖结果" >> $GITHUB_STEP_SUMMARY
-          echo "- 奖池大小：$POOL_SIZE" >> $GITHUB_STEP_SUMMARY
-          echo "- 抽奖数量：$WINNER_COUNT" >> $GITHUB_STEP_SUMMARY
-          echo "- 随机种子：$SEED" >> $GITHUB_STEP_SUMMARY
-          echo "- 中奖号码：$winners_str" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎲 Lottery Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Pool Size: $POOL_SIZE" >> $GITHUB_STEP_SUMMARY
+          echo "- Number of Winners: $WINNER_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- Random Seed: $SEED" >> $GITHUB_STEP_SUMMARY
+          echo "- Winning Numbers: $winners_str" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lottery-results
           path: lottery_result.json
@@ -79,21 +79,21 @@ jobs:
 
       - name: Generate Result File
         run: |
-          echo "# 🎲 抽奖结果 ($(date '+%Y-%m-%d'))" > result.md
+          echo "# 🎲 Lottery Results ($(date '+%Y-%m-%d'))" > result.md
           echo "" >> result.md
-          echo "## 区块信息" >> result.md
-          echo "- 区块哈希：\`${{ steps.fetch-hash.outputs.block_hash }}\`" >> result.md
-          echo "- 随机种子：${{ steps.lottery.outputs.seed }}" >> result.md
+          echo "## Block Information" >> result.md
+          echo "- Block Hash: \`${{ steps.fetch-hash.outputs.block_hash }}\`" >> result.md
+          echo "- Random Seed: ${{ steps.lottery.outputs.seed }}" >> result.md
           echo "" >> result.md
-          echo "## 抽奖结果" >> result.md
-          echo "- 奖池大小：${{ env.POOL_SIZE }}" >> result.md
-          echo "- 抽奖数量：${{ env.WINNER_COUNT }}" >> result.md
-          echo "- 🎉 中奖号码：${{ steps.lottery.outputs.winners }}" >> result.md
+          echo "## Lottery Results" >> result.md
+          echo "- Pool Size: ${{ env.POOL_SIZE }}" >> result.md
+          echo "- Number of Winners: ${{ env.WINNER_COUNT }}" >> result.md
+          echo "- 🎉 Winning Numbers: ${{ steps.lottery.outputs.winners }}" >> result.md
           echo "" >> result.md
-          echo "> 生成时间：$(date '+%Y-%m-%d %H:%M:%S')" >> result.md
+          echo "> Generated at: $(date '+%Y-%m-%d %H:%M:%S')" >> result.md
 
       - name: Upload Result Summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Updated to v4
         with:
           name: lottery-summary
           path: result.md
