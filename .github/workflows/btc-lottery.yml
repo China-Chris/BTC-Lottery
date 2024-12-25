@@ -2,12 +2,12 @@ name: BTC Lottery
 
 on:
   schedule:
-    - cron: "0 10 * * *" # 每天 00:00 UTC 运行
-  workflow_dispatch: # 手动触发
+    - cron: "0 9 * * *"
+  workflow_dispatch:
 
 env:
-  POOL_SIZE: 20      # 奖池数字范围 (1 到 POOL_SIZE)
-  WINNER_COUNT: 1    # 抽奖数量
+  POOL_SIZE: 15
+  WINNER_COUNT: 2
 
 jobs:
   lottery:
@@ -21,8 +21,10 @@ jobs:
         id: fetch-hash
         run: |
           response=$(curl -s https://blockchain.info/latestblock)
-          echo "Latest Block Hash: $(echo $response | jq -r '.hash')"
-          echo "block_hash=$(echo $response | jq -r '.hash')" >> $GITHUB_OUTPUT
+          block_hash=$(echo $response | jq -r '.hash')
+          echo "block_hash=$block_hash" >> $GITHUB_OUTPUT
+          echo "## 🔗 区块信息" >> $GITHUB_STEP_SUMMARY
+          echo "- 区块哈希：\`$block_hash\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Perform Lottery
         id: lottery
@@ -31,10 +33,10 @@ jobs:
           WINNER_COUNT=${{ env.WINNER_COUNT }}
           BLOCK_HASH="${{ steps.fetch-hash.outputs.block_hash }}"
           SEED=$((0x${BLOCK_HASH: -8}))
-          
-          echo "Random Seed: $SEED"
+          echo "seed=$SEED" >> $GITHUB_OUTPUT
           
           echo "import random" > lottery.py
+          echo "import json" >> lottery.py
           echo "" >> lottery.py
           echo "pool_size = ${POOL_SIZE}" >> lottery.py
           echo "winner_count = ${WINNER_COUNT}" >> lottery.py
@@ -42,6 +44,55 @@ jobs:
           echo "" >> lottery.py
           echo "random.seed(seed)" >> lottery.py
           echo "winners = random.sample(range(1, pool_size + 1), winner_count)" >> lottery.py
-          echo "print('Winners:', winners)" >> lottery.py
+          echo "" >> lottery.py
+          echo "result = {" >> lottery.py
+          echo "    \"winners\": winners," >> lottery.py
+          echo "    \"seed\": seed," >> lottery.py
+          echo "    \"pool_size\": pool_size," >> lottery.py
+          echo "    \"winner_count\": winner_count" >> lottery.py
+          echo "}" >> lottery.py
+          echo "" >> lottery.py
+          echo "with open('lottery_result.json', 'w') as f:" >> lottery.py
+          echo "    json.dump(result, f)" >> lottery.py
+          echo "" >> lottery.py
+          echo "print(f\"🎉 抽奖结果：{winners}\")" >> lottery.py
           
           python3 lottery.py
+          
+          echo "## 🎲 抽奖结果" >> $GITHUB_STEP_SUMMARY
+          echo "- 奖池大小：$POOL_SIZE" >> $GITHUB_STEP_SUMMARY
+          echo "- 抽奖数量：$WINNER_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- 随机种子：$SEED" >> $GITHUB_STEP_SUMMARY
+          echo "- 中奖号码：$(cat lottery_result.json | jq -r '.winners')" >> $GITHUB_STEP_SUMMARY
+          
+          winners=$(cat lottery_result.json | jq -r '.winners')
+          echo "winners=$winners" >> $GITHUB_OUTPUT
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: lottery-results
+          path: lottery_result.json
+          retention-days: 90
+
+      - name: Generate Result File
+        run: |
+          echo "# 🎲 抽奖结果 ($(date '+%Y-%m-%d'))" > result.md
+          echo "" >> result.md
+          echo "## 区块信息" >> result.md
+          echo "- 区块哈希：\`${{ steps.fetch-hash.outputs.block_hash }}\`" >> result.md
+          echo "- 随机种子：${{ steps.lottery.outputs.seed }}" >> result.md
+          echo "" >> result.md
+          echo "## 抽奖结果" >> result.md
+          echo "- 奖池大小：${{ env.POOL_SIZE }}" >> result.md
+          echo "- 抽奖数量：${{ env.WINNER_COUNT }}" >> result.md
+          echo "- 🎉 中奖号码：${{ steps.lottery.outputs.winners }}" >> result.md
+          echo "" >> result.md
+          echo "> 生成时间：$(date '+%Y-%m-%d %H:%M:%S')" >> result.md
+
+      - name: Upload Result Summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: lottery-summary
+          path: result.md
+          retention-days: 90
