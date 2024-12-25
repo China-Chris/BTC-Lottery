@@ -39,18 +39,18 @@ jobs:
           echo "Random Seed: $SEED"
 
           # Python 脚本抽奖
-          python - <<EOF
+          echo "
 import random
 
 # 环境变量
-pool_size = int("${POOL_SIZE}")
-winner_count = int("${WINNER_COUNT}")
-seed = int("${SEED}")
+pool_size = int('${POOL_SIZE}')
+winner_count = int('${WINNER_COUNT}')
+seed = int('${SEED}')
 
 # 初始化随机数生成器
 random.seed(seed)
 
 # 抽取奖项
 winners = random.sample(range(1, pool_size + 1), winner_count)
-print("Winners:", winners)
-EOF
+print('Winners:', winners)
+          " | python3
