@@ -1,0 +1,56 @@
+name: BTC Lottery
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # 每天 00:00 UTC 运行
+  workflow_dispatch: # 手动触发
+
+env:
+  POOL_SIZE: 20      # 奖池数字范围 (1 到 POOL_SIZE)
+  WINNER_COUNT: 3    # 抽奖数量
+
+jobs:
+  lottery:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Fetch BTC Latest Block Hash
+        id: fetch-hash
+        run: |
+          # 使用 Blockchain.com API 获取最新区块信息
+          response=$(curl -s https://blockchain.info/latestblock)
+          echo "Latest Block Hash: $(echo $response | jq -r '.hash')"
+          echo "::set-output name=block_hash::$(echo $response | jq -r '.hash')"
+
+      - name: Perform Lottery
+        id: lottery
+        run: |
+          # 获取环境变量
+          POOL_SIZE=${{ env.POOL_SIZE }}
+          WINNER_COUNT=${{ env.WINNER_COUNT }}
+
+          # 使用区块哈希作为随机种子
+          BLOCK_HASH="${{ steps.fetch-hash.outputs.block_hash }}"
+          SEED=$((0x${BLOCK_HASH: -8})) # 使用哈希的最后8位生成随机种子
+
+          echo "Random Seed: $SEED"
+
+          # Python 脚本抽奖
+          python - <<EOF
+import random
+
+# 环境变量
+pool_size = int("${POOL_SIZE}")
+winner_count = int("${WINNER_COUNT}")
+seed = int("${SEED}")
+
+# 初始化随机数生成器
+random.seed(seed)
+
+# 抽取奖项
+winners = random.sample(range(1, pool_size + 1), winner_count)
+print("Winners:", winners)
+EOF
