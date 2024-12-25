@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  POOL_SIZE: 15
-  WINNER_COUNT: 2
+  POOL_SIZE: 15      # 修改为15
+  WINNER_COUNT: 2    # 修改为2
 
 jobs:
   lottery:
@@ -56,17 +56,19 @@ jobs:
           echo "    json.dump(result, f)" >> lottery.py
           echo "" >> lottery.py
           echo "print(f\"🎉 抽奖结果：{winners}\")" >> lottery.py
+          echo "print(f\"winners_str={','.join(map(str, winners))}\")" >> lottery.py
           
-          python3 lottery.py
+          python3 lottery.py > output.txt
+          
+          # 从输出中提取winners_str并保存到GITHUB_OUTPUT
+          winners_str=$(grep "winners_str=" output.txt | cut -d'=' -f2)
+          echo "winners=$winners_str" >> $GITHUB_OUTPUT
           
           echo "## 🎲 抽奖结果" >> $GITHUB_STEP_SUMMARY
           echo "- 奖池大小：$POOL_SIZE" >> $GITHUB_STEP_SUMMARY
           echo "- 抽奖数量：$WINNER_COUNT" >> $GITHUB_STEP_SUMMARY
           echo "- 随机种子：$SEED" >> $GITHUB_STEP_SUMMARY
-          echo "- 中奖号码：$(cat lottery_result.json | jq -r '.winners')" >> $GITHUB_STEP_SUMMARY
-          
-          winners=$(cat lottery_result.json | jq -r '.winners')
-          echo "winners=$winners" >> $GITHUB_OUTPUT
+          echo "- 中奖号码：$winners_str" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Results
         uses: actions/upload-artifact@v3
