@@ -2,7 +2,7 @@ name: BTC Lottery
 
 on:
   schedule:
-    - cron: "0 10 * * *"
+    - cron: "15 18 * * *"
   workflow_dispatch:
 
 env:
