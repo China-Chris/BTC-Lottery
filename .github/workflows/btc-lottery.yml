@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  POOL_SIZE: 15      # Pool size range (1 to POOL_SIZE)
-  WINNER_COUNT: 2    # Number of winners
+  POOL_SIZE: 82      # Pool size range (1 to POOL_SIZE)
+  WINNER_COUNT: 5    # Number of winners
 
 jobs:
   lottery:
